@@ -1,5 +1,5 @@
 import Foundation
-import CryptoKit
+import CommonCrypto
 
 public class LarkCustomBot {
     private let webhook: String
@@ -79,55 +79,65 @@ public class LarkCustomBot {
     }
     
     // 上传图片
-    public func uploadImage(filePath: String) async -> String {
+    public func uploadImage(filePath: String, completion: @escaping (String) -> Void) {
         guard FileManager.default.fileExists(atPath: filePath),
               !botAppId.isEmpty, !botSecret.isEmpty else {
             logger.warning("Image file does not exist or bot credentials missing")
-            return ""
+            completion("")
+            return
         }
         
-        do {
-            let tenantAccessToken = try await getTenantAccessToken()
+        getTenantAccessToken { token in
+            guard let token = token else {
+                completion("")
+                return
+            }
+            
             let url = URL(string: "https://open.feishu.cn/open-apis/im/v1/images")!
             
-            let fileURL = URL(fileURLWithPath: filePath)
-            let fileName = fileURL.lastPathComponent
-            let imageData = try Data(contentsOf: fileURL)
-            
-            let boundary = UUID().uuidString
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("Bearer \(tenantAccessToken)", forHTTPHeaderField: "Authorization")
-            request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-            
-            var bodyData = Data()
-            // 添加image_type字段
-            bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
-            bodyData.append("Content-Disposition: form-data; name=\"image_type\"\r\n\r\n".data(using: .utf8)!)
-            bodyData.append("message\r\n".data(using: .utf8)!)
-            
-            // 添加图片数据
-            bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
-            bodyData.append("Content-Disposition: form-data; name=\"image\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
-            bodyData.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
-            bodyData.append(imageData)
-            bodyData.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
-            
-            request.httpBody = bodyData
-            
-            let (data, _) = try await URLSession.shared.data(for: request)
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let responseData = json["data"] as? [String: Any],
-               let imageKey = responseData["image_key"] as? String {
-                return imageKey
+            do {
+                let fileURL = URL(fileURLWithPath: filePath)
+                let fileName = fileURL.lastPathComponent
+                let imageData = try Data(contentsOf: fileURL)
+                
+                let boundary = UUID().uuidString
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                
+                var bodyData = Data()
+                bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
+                bodyData.append("Content-Disposition: form-data; name=\"image_type\"\r\n\r\n".data(using: .utf8)!)
+                bodyData.append("message\r\n".data(using: .utf8)!)
+                
+                bodyData.append("--\(boundary)\r\n".data(using: .utf8)!)
+                bodyData.append("Content-Disposition: form-data; name=\"image\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+                bodyData.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
+                bodyData.append(imageData)
+                bodyData.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+                
+                request.httpBody = bodyData
+                
+                let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                    guard let data = data,
+                          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                          let responseData = json["data"] as? [String: Any],
+                          let imageKey = responseData["image_key"] as? String else {
+                        completion("")
+                        return
+                    }
+                    completion(imageKey)
+                }
+                task.resume()
+            } catch {
+                logger.error("Failed to upload image: \(error.localizedDescription)")
+                completion("")
             }
-        } catch {
-            logger.error("Failed to upload image: \(error.localizedDescription)")
         }
-        return ""
     }
     
-    private func getTenantAccessToken() async throws -> String {
+    private func getTenantAccessToken(completion: @escaping (String?) -> Void) {
         let url = URL(string: "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal")!
         let payload: [String: Any] = [
             "app_id": botAppId,
@@ -137,54 +147,77 @@ public class LarkCustomBot {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         
-        let (data, _) = try await URLSession.shared.data(for: request)
-        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let token = json["tenant_access_token"] as? String {
-            return token
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                guard let data = data,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let token = json["tenant_access_token"] as? String else {
+                    completion(nil)
+                    return
+                }
+                completion(token)
+            }
+            task.resume()
+        } catch {
+            completion(nil)
         }
-        throw NSError(domain: "LarkCustomBot", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get tenant access token"])
     }
     
     private func sendRequest(_ data: [String: Any]) {
-        Task {
+        DispatchQueue.global().async {
             do {
                 var requestData = data
-                if !secret.isEmpty {
+                if !self.secret.isEmpty {
                     let timestamp = Int(Date().timeIntervalSince1970)
                     requestData["timestamp"] = timestamp
-                    // 如果需要，这里可以添加签名逻辑
                 }
                 
-                guard let url = URL(string: webhook) else { return }
+                guard let url = URL(string: self.webhook) else { return }
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 request.httpBody = try JSONSerialization.data(withJSONObject: requestData)
                 
-                let (data, _) = try await URLSession.shared.data(for: request)
-                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    if json["code"] != nil {
-                        logger.warning("Message sending failed: \(json)")
-                    } else if let statusCode = json["StatusCode"] as? Int, statusCode == 0 {
-                        logger.info("Message sent successfully")
+                let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                    if let data = data,
+                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        if json["code"] != nil {
+                            self.logger.warning("Message sending failed: \(json)")
+                        } else if let statusCode = json["StatusCode"] as? Int, statusCode == 0 {
+                            self.logger.info("Message sent successfully")
+                        }
                     }
                 }
+                task.resume()
             } catch {
-                logger.error("Failed to send message: \(error.localizedDescription)")
+                self.logger.error("Failed to send message: \(error.localizedDescription)")
             }
         }
     }
     
     private func generateSignature(timestamp: Int, secret: String) -> String {
         let stringToSign = "\(timestamp)\n\(secret)"
-        if let data = stringToSign.data(using: .utf8) {
-            let key = SymmetricKey(data: secret.data(using: .utf8)!)
-            let signature = HMAC<SHA256>.authenticationCode(for: data, using: key)
-            return Data(signature).base64EncodedString()
+        guard let data = stringToSign.data(using: .utf8),
+              let keyData = secret.data(using: .utf8) else {
+            return ""
         }
-        return ""
+        
+        var digest = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        keyData.withUnsafeBytes { keyPtr in
+            data.withUnsafeBytes { dataPtr in
+                CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA256),
+                      keyPtr.baseAddress,
+                      keyData.count,
+                      dataPtr.baseAddress,
+                      data.count,
+                      &digest)
+            }
+        }
+        
+        return Data(digest).base64EncodedString()
     }
 }
 
