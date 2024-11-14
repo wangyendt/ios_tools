@@ -17,7 +17,7 @@ public actor LarkCustomBot {
     }
     
     // 发送文本消息
-    public func sendText(_ text: String, mentionAll: Bool = false) {
+    public func sendText(_ text: String, mentionAll: Bool = false) async {
         let content: [String: Any] = [
             "text": mentionAll ? "\(text) <at user_id=\"all\">所有人</at>" : text
         ]
@@ -27,11 +27,11 @@ public actor LarkCustomBot {
             "content": content
         ]
         
-        sendRequest(data)
+        await sendRequest(data)
     }
     
     // 发送富文本消息
-    public func sendPost(content: [[Any]], title: String) {
+    public func sendPost(content: [[Any]], title: String) async {
         let postContent: [String: Any] = [
             "title": title,
             "content": content
@@ -46,44 +46,44 @@ public actor LarkCustomBot {
             "content": ["post": zhCn]
         ]
         
-        sendRequest(data)
+        await sendRequest(data)
     }
     
     // 发送群名片
-    public func sendShareChat(shareChatId: String) {
+    public func sendShareChat(shareChatId: String) async {
         let data: [String: Any] = [
             "msg_type": "share_chat",
             "content": ["share_chat_id": shareChatId]
         ]
         
-        sendRequest(data)
+        await sendRequest(data)
     }
     
     // 发送图片
-    public func sendImage(imageKey: String) {
+    public func sendImage(imageKey: String) async {
         let data: [String: Any] = [
             "msg_type": "image",
             "content": ["image_key": imageKey]
         ]
         
-        sendRequest(data)
+        await sendRequest(data)
     }
     
     // 发送消息卡片
-    public func sendInteractive(card: [String: Any]) {
+    public func sendInteractive(card: [String: Any]) async {
         let data: [String: Any] = [
             "msg_type": "interactive",
             "card": card
         ]
         
-        sendRequest(data)
+        await sendRequest(data)
     }
     
     // 上传图片
     public func uploadImage(filePath: String) async throws -> String {
         guard FileManager.default.fileExists(atPath: filePath),
               !botAppId.isEmpty, !botSecret.isEmpty else {
-            logger.warning("Image file does not exist or bot credentials missing")
+            await logger.warning("Image file does not exist or bot credentials missing")
             return ""
         }
         
@@ -123,7 +123,7 @@ public actor LarkCustomBot {
                 return imageKey
             }
         } catch {
-            logger.error("Failed to upload image: \(error.localizedDescription)")
+            await logger.error("Failed to upload image: \(error.localizedDescription)")
         }
         return ""
     }
@@ -148,32 +148,30 @@ public actor LarkCustomBot {
         throw NSError(domain: "LarkCustomBot", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get tenant access token"])
     }
     
-    private func sendRequest(_ data: [String: Any]) {
-        Task { @MainActor in
-            do {
-                var requestData = data
-                if !secret.isEmpty {
-                    let timestamp = Int(Date().timeIntervalSince1970)
-                    requestData["timestamp"] = timestamp
-                }
-                
-                guard let url = URL(string: webhook) else { return }
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.httpBody = try JSONSerialization.data(withJSONObject: requestData)
-                
-                let (responseData, _) = try await URLSession.shared.data(for: request)
-                if let json = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any] {
-                    if json["code"] != nil {
-                        logger.warning("Message sending failed: \(json)")
-                    } else if let statusCode = json["StatusCode"] as? Int, statusCode == 0 {
-                        logger.info("Message sent successfully")
-                    }
-                }
-            } catch {
-                logger.error("Failed to send message: \(error.localizedDescription)")
+    private func sendRequest(_ data: [String: Any]) async {
+        do {
+            var requestData = data
+            if !secret.isEmpty {
+                let timestamp = Int(Date().timeIntervalSince1970)
+                requestData["timestamp"] = timestamp
             }
+            
+            guard let url = URL(string: webhook) else { return }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestData)
+            
+            let (responseData, _) = try await URLSession.shared.data(for: request)
+            if let json = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any] {
+                if json["code"] != nil {
+                    await logger.warning("Message sending failed: \(json)")
+                } else if let statusCode = json["StatusCode"] as? Int, statusCode == 0 {
+                    await logger.info("Message sent successfully")
+                }
+            }
+        } catch {
+            await logger.error("Failed to send message: \(error.localizedDescription)")
         }
     }
     
@@ -238,8 +236,8 @@ public extension LarkCustomBot {
     }
 }
 
-// 简单的日志类
-private class Logger {
+// 将 Logger 改为 actor
+private actor Logger {
     func info(_ message: String) {
         print("INFO: \(message)")
     }
