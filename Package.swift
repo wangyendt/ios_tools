@@ -25,7 +25,10 @@ let package = Package(
             targets: ["WaynePrintDemo"]),
         .executable(
             name: "AliyunOSSDemo",
-            targets: ["AliyunOSSDemo"])
+            targets: ["AliyunOSSDemo"]),
+        .executable(
+            name: "OpenAIDemo",
+            targets: ["OpenAIDemo"])
     ],
     targets: [
         // 核心库目标，只包含实际的功能代码
@@ -38,17 +41,20 @@ let package = Package(
                 "LarkBot/Demo",
                 "LarkCustomBot/Demo",
                 "Tools/Demo",
+                "OpenAI/Demo",
                 // 排除所有可能包含 @main 的文件
                 "AliyunOSS/Demo/main.swift",
                 "LarkBot/Demo/main.swift",
                 "LarkCustomBot/Demo/main.swift",
-                "Tools/Demo/WaynePrint/main.swift"
+                "Tools/Demo/WaynePrint/main.swift",
+                "OpenAI/Demo/main.swift"
             ],
             sources: [
                 "AliyunOSS/AliyunOSS.swift",
                 "LarkBot/LarkBot.swift",
                 "LarkCustomBot/LarkCustomBot.swift",
                 "Tools/WaynePrint.swift",
+                "OpenAI/OpenAI.swift",
                 "Common"
             ]),
         
@@ -72,6 +78,11 @@ let package = Package(
             name: "WaynePrintDemo",
             dependencies: ["ios_tools_lib"],
             path: "Sources/ios_tools/Tools/Demo/WaynePrint",
+            sources: ["main.swift"]),
+        .executableTarget(
+            name: "OpenAIDemo",
+            dependencies: ["ios_tools_lib"],
+            path: "Sources/ios_tools/OpenAI/Demo",
             sources: ["main.swift"])
     ]
 )
