@@ -234,19 +234,4 @@ public extension LarkCustomBot {
         if let height = height { content["height"] = height }
         return content
     }
-}
-
-// 将 Logger 改为 actor
-private actor Logger {
-    func info(_ message: String) {
-        print("INFO: \(message)")
-    }
-    
-    func warning(_ message: String) {
-        print("WARNING: \(message)")
-    }
-    
-    func error(_ message: String) {
-        print("ERROR: \(message)")
-    }
 } 

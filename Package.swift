@@ -15,15 +15,27 @@ let package = Package(
         .library(
             name: "ios_tools",
             targets: ["ios_tools"]),
+        .executable(
+            name: "LarkBotDemo",
+            targets: ["LarkBotDemo"]),
+        .executable(
+            name: "LarkCustomBotDemo",
+            targets: ["LarkCustomBotDemo"])
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "ios_tools"),
-        .testTarget(
-            name: "ios_toolsTests",
-            dependencies: ["ios_tools"]
-        ),
+            name: "ios_tools",
+            path: "Sources/ios_tools",
+            exclude: ["LarkBot/Demo", "LarkCustomBot/Demo"]),
+        .executableTarget(
+            name: "LarkBotDemo",
+            dependencies: ["ios_tools"],
+            path: "Sources/ios_tools/LarkBot/Demo"),
+        .executableTarget(
+            name: "LarkCustomBotDemo",
+            dependencies: ["ios_tools"],
+            path: "Sources/ios_tools/LarkCustomBot/Demo")
     ]
 )
