@@ -1,5 +1,5 @@
 import Foundation
-import ios_tools
+import ios_tools_lib
 
 @available(iOS 13.0, macOS 10.15, watchOS 6.0, *)
 @main

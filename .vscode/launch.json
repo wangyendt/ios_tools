@@ -1,0 +1,76 @@
+{
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:ios_tools}",
+			"name": "Debug LarkBotDemo",
+			"program": "${workspaceFolder:ios_tools}/.build/debug/LarkBotDemo",
+			"preLaunchTask": "swift: Build Debug LarkBotDemo"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:ios_tools}",
+			"name": "Release LarkBotDemo",
+			"program": "${workspaceFolder:ios_tools}/.build/release/LarkBotDemo",
+			"preLaunchTask": "swift: Build Release LarkBotDemo"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:ios_tools}",
+			"name": "Debug LarkCustomBotDemo",
+			"program": "${workspaceFolder:ios_tools}/.build/debug/LarkCustomBotDemo",
+			"preLaunchTask": "swift: Build Debug LarkCustomBotDemo"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:ios_tools}",
+			"name": "Release LarkCustomBotDemo",
+			"program": "${workspaceFolder:ios_tools}/.build/release/LarkCustomBotDemo",
+			"preLaunchTask": "swift: Build Release LarkCustomBotDemo"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:ios_tools}",
+			"name": "Debug WaynePrintDemo",
+			"program": "${workspaceFolder:ios_tools}/.build/debug/WaynePrintDemo",
+			"preLaunchTask": "swift: Build Debug WaynePrintDemo"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:ios_tools}",
+			"name": "Release WaynePrintDemo",
+			"program": "${workspaceFolder:ios_tools}/.build/release/WaynePrintDemo",
+			"preLaunchTask": "swift: Build Release WaynePrintDemo"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:ios_tools}",
+			"name": "Debug AliyunOSSDemo",
+			"program": "${workspaceFolder:ios_tools}/.build/debug/AliyunOSSDemo",
+			"preLaunchTask": "swift: Build Debug AliyunOSSDemo"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"args": [],
+			"cwd": "${workspaceFolder:ios_tools}",
+			"name": "Release AliyunOSSDemo",
+			"program": "${workspaceFolder:ios_tools}/.build/release/AliyunOSSDemo",
+			"preLaunchTask": "swift: Build Release AliyunOSSDemo"
+		}
+	]
+}

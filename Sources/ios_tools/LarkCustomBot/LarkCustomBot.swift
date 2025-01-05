@@ -36,14 +36,17 @@ public actor LarkCustomBot {
         let (data, _) = try await URLSession.shared.data(for: request)
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             if let code = json["code"] as? Int, code == 0 {
-                WaynePrint.success("请求成功")
+                WaynePrint.print("请求成功", color: "green")
                 return json
             } else if let msg = json["msg"] as? String {
-                WaynePrint.error("请求失败: \(msg)")
+                WaynePrint.print("请求失败: \(msg)", color: "red")
                 throw NSError(domain: "LarkCustomBot", code: -1, userInfo: [NSLocalizedDescriptionKey: msg])
+            } else {
+                WaynePrint.print("请求失败: 未知错误", color: "red")
+                throw NSError(domain: "LarkCustomBot", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"])
             }
         }
-        WaynePrint.error("请求失败: 未知错误")
+        WaynePrint.print("请求失败: 未知错误", color: "red")
         throw NSError(domain: "LarkCustomBot", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"])
     }
     
@@ -53,7 +56,7 @@ public actor LarkCustomBot {
             "content": ["text": text]
         ]
         _ = try await sendRequest(payload: payload)
-        WaynePrint.success("发送文本消息成功")
+        WaynePrint.print("发送文本消息成功", color: "green")
     }
     
     public func sendPost(content: [[Any]], title: String) async throws {
@@ -69,7 +72,7 @@ public actor LarkCustomBot {
             ]
         ]
         _ = try await sendRequest(payload: payload)
-        WaynePrint.success("发送富文本消息成功")
+        WaynePrint.print("发送富文本消息成功", color: "green")
     }
     
     public func uploadImage(filePath: String) async throws -> String {
@@ -105,11 +108,12 @@ public actor LarkCustomBot {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let responseData = json["data"] as? [String: Any],
            let imageKey = responseData["image_key"] as? String {
-            WaynePrint.success("上传图片成功")
+            WaynePrint.print("上传图片成功", color: "green")
             return imageKey
+        } else {
+            WaynePrint.print("上传图片失败", color: "red")
+            return ""
         }
-        WaynePrint.error("上传图片失败")
-        return ""
     }
     
     private func getTenantAccessToken() async throws -> String {
@@ -127,11 +131,12 @@ public actor LarkCustomBot {
         let (data, _) = try await URLSession.shared.data(for: request)
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let token = json["tenant_access_token"] as? String {
-            WaynePrint.info("获取到 tenant access token")
+            WaynePrint.print("获取到 tenant access token", color: "blue")
             return token
+        } else {
+            WaynePrint.print("获取 tenant access token 失败", color: "red")
+            throw NSError(domain: "LarkCustomBot", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get tenant access token"])
         }
-        WaynePrint.error("获取 tenant access token 失败")
-        throw NSError(domain: "LarkCustomBot", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get tenant access token"])
     }
     
     public func sendImage(imageKey: String) async throws {
@@ -140,6 +145,6 @@ public actor LarkCustomBot {
             "content": ["image_key": imageKey]
         ]
         _ = try await sendRequest(payload: payload)
-        WaynePrint.success("发送图片消息成功")
+        WaynePrint.print("发送图片消息成功", color: "green")
     }
 } 

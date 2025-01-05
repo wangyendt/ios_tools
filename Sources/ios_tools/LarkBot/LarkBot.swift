@@ -54,10 +54,10 @@ public actor LarkBot {
         let (data, _) = try await URLSession.shared.data(for: request)
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let token = json["tenant_access_token"] as? String {
-            WaynePrint.info("获取到 tenant access token")
+            WaynePrint.print("获取到 tenant access token", color: "blue")
             return token
         }
-        WaynePrint.error("获取 tenant access token 失败")
+        WaynePrint.print("获取 tenant access token 失败", color: "red")
         throw NSError(domain: "LarkBot", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to get tenant access token"])
     }
     
@@ -82,10 +82,10 @@ public actor LarkBot {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let data = json["data"] as? [String: Any],
            let userList = data["user_list"] as? [[String: Any]] {
-            WaynePrint.success("获取用户信息成功")
+            WaynePrint.print("获取用户信息成功", color: "green")
             return LarkListResponse(userList)
         }
-        WaynePrint.warning("未找到用户信息")
+        WaynePrint.print("未找到用户信息", color: "yellow")
         return LarkListResponse()
     }
     
@@ -102,10 +102,10 @@ public actor LarkBot {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let data = json["data"] as? [String: Any],
            let items = data["items"] as? [[String: Any]] {
-            WaynePrint.success("获取群组列表成功")
+            WaynePrint.print("获取群组列表成功", color: "green")
             return LarkListResponse(items)
         }
-        WaynePrint.warning("未找到群组")
+        WaynePrint.print("未找到群组", color: "yellow")
         return LarkListResponse()
     }
     
@@ -114,11 +114,12 @@ public actor LarkBot {
         let chatIds = groups.items.filter { ($0["name"] as? String) == groupName }
                     .compactMap { $0["chat_id"] as? String }
         if chatIds.isEmpty {
-            WaynePrint.warning("未找到名为 \(groupName) 的群组")
+            WaynePrint.print("未找到名为 \(groupName) 的群组", color: "yellow")
+            return []
         } else {
-            WaynePrint.success("找到 \(chatIds.count) 个名为 \(groupName) 的群组")
+            WaynePrint.print("找到 \(chatIds.count) 个名为 \(groupName) 的群组", color: "green")
+            return chatIds
         }
-        return chatIds
     }
     
     public func getMembersInGroupByGroupChatId(_ groupChatId: String) async throws -> LarkListResponse {
@@ -133,10 +134,10 @@ public actor LarkBot {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let data = json["data"] as? [String: Any],
            let items = data["items"] as? [[String: Any]] {
-            WaynePrint.success("获取群成员列表成功")
+            WaynePrint.print("获取群成员列表成功", color: "green")
             return LarkListResponse(items)
         }
-        WaynePrint.warning("未找到群成员")
+        WaynePrint.print("未找到群成员", color: "yellow")
         return LarkListResponse()
     }
     
@@ -145,11 +146,12 @@ public actor LarkBot {
         let memberIds = members.items.filter { ($0["name"] as? String) == memberName }
                      .compactMap { $0["member_id"] as? String }
         if memberIds.isEmpty {
-            WaynePrint.warning("未找到名为 \(memberName) 的成员")
+            WaynePrint.print("未找到名为 \(memberName) 的成员", color: "yellow")
+            return []
         } else {
-            WaynePrint.success("找到 \(memberIds.count) 个名为 \(memberName) 的成员")
+            WaynePrint.print("找到 \(memberIds.count) 个名为 \(memberName) 的成员", color: "green")
+            return memberIds
         }
-        return memberIds
     }
     
     // MARK: - Message Sending
@@ -172,10 +174,10 @@ public actor LarkBot {
         let (data, _) = try await URLSession.shared.data(for: request)
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let responseData = json["data"] as? [String: Any] {
-            WaynePrint.success("发送消息成功")
+            WaynePrint.print("发送消息成功", color: "green")
             return LarkResponse(responseData)
         }
-        WaynePrint.error("发送消息失败")
+        WaynePrint.print("发送消息失败", color: "red")
         return LarkResponse()
     }
     
@@ -299,10 +301,10 @@ public actor LarkBot {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let responseData = json["data"] as? [String: Any],
            let imageKey = responseData["image_key"] as? String {
-            WaynePrint.success("上传图片成功")
+            WaynePrint.print("上传图片成功", color: "green")
             return imageKey
         }
-        WaynePrint.error("上传图片失败")
+        WaynePrint.print("上传图片失败", color: "red")
         return ""
     }
     
@@ -316,7 +318,7 @@ public actor LarkBot {
         
         let (data, _) = try await URLSession.shared.data(for: request)
         try data.write(to: URL(fileURLWithPath: imageSavePath))
-        WaynePrint.success("下载图片成功")
+        WaynePrint.print("下载图片成功", color: "green")
     }
     
     public func uploadFile(filePath: String, fileType: String = "stream") async throws -> String {
@@ -357,10 +359,10 @@ public actor LarkBot {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let responseData = json["data"] as? [String: Any],
            let fileKey = responseData["file_key"] as? String {
-            WaynePrint.success("上传文件成功")
+            WaynePrint.print("上传文件成功", color: "green")
             return fileKey
         }
-        WaynePrint.error("上传文件失败")
+        WaynePrint.print("上传文件失败", color: "red")
         return ""
     }
     
@@ -374,6 +376,6 @@ public actor LarkBot {
         
         let (data, _) = try await URLSession.shared.data(for: request)
         try data.write(to: URL(fileURLWithPath: fileSavePath))
-        WaynePrint.success("下载文件成功")
+        WaynePrint.print("下载文件成功", color: "green")
     }
 } 
