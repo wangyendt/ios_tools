@@ -28,8 +28,7 @@ let package = Package(
             targets: ["AliyunOSSDemo"])
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
+        // 核心库目标，只包含实际的功能代码
         .target(
             name: "ios_tools_lib",
             dependencies: [],
@@ -38,30 +37,41 @@ let package = Package(
                 "AliyunOSS/Demo",
                 "LarkBot/Demo",
                 "LarkCustomBot/Demo",
-                "Tools/Demo"
+                "Tools/Demo",
+                // 排除所有可能包含 @main 的文件
+                "AliyunOSS/Demo/main.swift",
+                "LarkBot/Demo/main.swift",
+                "LarkCustomBot/Demo/main.swift",
+                "Tools/Demo/WaynePrint/main.swift"
             ],
             sources: [
                 "AliyunOSS/AliyunOSS.swift",
-                "Common",
                 "LarkBot/LarkBot.swift",
                 "LarkCustomBot/LarkCustomBot.swift",
-                "Tools/WaynePrint.swift"
+                "Tools/WaynePrint.swift",
+                "Common"
             ]),
-        .executableTarget(
-            name: "LarkBotDemo",
-            dependencies: ["ios_tools_lib"],
-            path: "Sources/ios_tools/LarkBot/Demo"),
-        .executableTarget(
-            name: "LarkCustomBotDemo",
-            dependencies: ["ios_tools_lib"],
-            path: "Sources/ios_tools/LarkCustomBot/Demo"),
-        .executableTarget(
-            name: "WaynePrintDemo",
-            dependencies: ["ios_tools_lib"],
-            path: "Sources/ios_tools/Tools/Demo/WaynePrint"),
+        
+        // Demo 目标，分开管理
         .executableTarget(
             name: "AliyunOSSDemo",
             dependencies: ["ios_tools_lib"],
-            path: "Sources/ios_tools/AliyunOSS/Demo")
+            path: "Sources/ios_tools/AliyunOSS/Demo",
+            sources: ["main.swift"]),
+        .executableTarget(
+            name: "LarkBotDemo",
+            dependencies: ["ios_tools_lib"],
+            path: "Sources/ios_tools/LarkBot/Demo",
+            sources: ["main.swift"]),
+        .executableTarget(
+            name: "LarkCustomBotDemo",
+            dependencies: ["ios_tools_lib"],
+            path: "Sources/ios_tools/LarkCustomBot/Demo",
+            sources: ["main.swift"]),
+        .executableTarget(
+            name: "WaynePrintDemo",
+            dependencies: ["ios_tools_lib"],
+            path: "Sources/ios_tools/Tools/Demo/WaynePrint",
+            sources: ["main.swift"])
     ]
 )
