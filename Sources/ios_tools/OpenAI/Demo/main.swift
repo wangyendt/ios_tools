@@ -12,46 +12,28 @@ struct OpenAIDemo {
                 baseURL: "https://api.deepseek.com/v1"
             )
             
-            // 聊天完成示例
-            print("=== Chat Completion Example ===")
-            let messages = [
-                ChatMessage(role: "system", content: "你是一个有帮助的助手。"),
-                ChatMessage(role: "user", content: "你好！请介绍一下自己。")
-            ]
-            
-            print("Sending chat request...")
-            let chatResponse = try await openAI.chat(
-                messages: messages,
+            // 1. 常规调用示例
+            print("=== Regular Chat ===")
+            let response = try await openAI.chat(
+                messages: [ChatMessage(role: "user", content: "1+1=？")],
                 model: "deepseek-chat",
                 temperature: 0.7
             )
+            print("Response:", response.choices.first?.message.content ?? "", "\n")
             
-            print("Assistant's response:")
-            if let message = chatResponse.choices.first?.message {
-                print(message.content)
-            }
-            
-            // 继续对话
-            print("\n=== Continue Chat ===")
-            let followUpMessages = messages + [
-                ChatMessage(role: "assistant", content: chatResponse.choices.first?.message.content ?? ""),
-                ChatMessage(role: "user", content: "你能使用什么编程语言？")
-            ]
-            
-            print("Sending follow-up request...")
-            let followUpResponse = try await openAI.chat(
-                messages: followUpMessages,
+            // 2. 流式调用示例
+            print("=== Streaming Chat ===")
+            try await openAI.chatStream(
+                messages: [ChatMessage(role: "user", content: "1+2等于几？")],
                 model: "deepseek-chat",
                 temperature: 0.7
-            )
-            
-            print("Assistant's response:")
-            if let message = followUpResponse.choices.first?.message {
-                print(message.content)
+            ) { chunk in
+                print(chunk, terminator: "")
             }
+            print("\n")
             
         } catch {
-            print("Error occurred: \(error)")
+            print("\nError:", error)
             exit(1)
         }
     }
