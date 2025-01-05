@@ -34,7 +34,19 @@ let package = Package(
             name: "ios_tools_lib",
             dependencies: [],
             path: "Sources/ios_tools",
-            sources: ["AliyunOSS/AliyunOSS.swift", "Common", "LarkBot/LarkBot.swift", "LarkCustomBot/LarkCustomBot.swift", "Tools/WaynePrint.swift"]),
+            exclude: [
+                "AliyunOSS/Demo",
+                "LarkBot/Demo",
+                "LarkCustomBot/Demo",
+                "Tools/Demo"
+            ],
+            sources: [
+                "AliyunOSS/AliyunOSS.swift",
+                "Common",
+                "LarkBot/LarkBot.swift",
+                "LarkCustomBot/LarkCustomBot.swift",
+                "Tools/WaynePrint.swift"
+            ]),
         .executableTarget(
             name: "LarkBotDemo",
             dependencies: ["ios_tools_lib"],
