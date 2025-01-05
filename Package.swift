@@ -20,7 +20,10 @@ let package = Package(
             targets: ["LarkBotDemo"]),
         .executable(
             name: "LarkCustomBotDemo",
-            targets: ["LarkCustomBotDemo"])
+            targets: ["LarkCustomBotDemo"]),
+        .executable(
+            name: "WaynePrintDemo",
+            targets: ["WaynePrintDemo"])
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -28,7 +31,7 @@ let package = Package(
         .target(
             name: "ios_tools",
             path: "Sources/ios_tools",
-            exclude: ["LarkBot/Demo", "LarkCustomBot/Demo"]),
+            exclude: ["LarkBot/Demo", "LarkCustomBot/Demo", "Tools/Demo"]),
         .executableTarget(
             name: "LarkBotDemo",
             dependencies: ["ios_tools"],
@@ -36,6 +39,10 @@ let package = Package(
         .executableTarget(
             name: "LarkCustomBotDemo",
             dependencies: ["ios_tools"],
-            path: "Sources/ios_tools/LarkCustomBot/Demo")
+            path: "Sources/ios_tools/LarkCustomBot/Demo"),
+        .executableTarget(
+            name: "WaynePrintDemo",
+            dependencies: ["ios_tools"],
+            path: "Sources/ios_tools/Tools/Demo")
     ]
 )
