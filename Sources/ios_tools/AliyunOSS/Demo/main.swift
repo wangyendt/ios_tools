@@ -69,26 +69,49 @@ struct Main {
             WaynePrint.print("  - \(file)", color: "magenta")
         }
         
-        // 6. 下载文件
-        WaynePrint.print("\n6. 测试下载文件", color: "cyan")
+        // 6. 测试列举目录内容
+        WaynePrint.print("\n6. 测试列举目录内容", color: "cyan")
+        // 列举根目录
+        WaynePrint.print("根目录内容：", color: "magenta")
+        let rootContents = try await manager.listDirectoryContents("")
+        for item in rootContents {
+            WaynePrint.print("  \(item.isDirectory ? "📁" : "📄") \(item.name)\(item.isDirectory ? "/" : "")", color: "magenta")
+        }
+        
+        // 列举 test_dir 目录
+        WaynePrint.print("\ntest_dir 目录内容：", color: "magenta")
+        let testDirContents = try await manager.listDirectoryContents("test_dir")
+        for item in testDirContents {
+            WaynePrint.print("  \(item.isDirectory ? "📁" : "📄") \(item.name)\(item.isDirectory ? "/" : "")", color: "magenta")
+        }
+        
+        // 列举 1 目录
+        WaynePrint.print("\n1 目录内容：", color: "magenta")
+        let dir1Contents = try await manager.listDirectoryContents("micro_hand_gesture/raw_data")
+        for item in dir1Contents {
+            WaynePrint.print("  \(item.isDirectory ? "📁" : "📄") \(item.name)\(item.isDirectory ? "/" : "")", color: "magenta")
+        }
+        
+        // 7. 下载文件
+        WaynePrint.print("\n7. 测试下载文件", color: "cyan")
         _ = try await manager.downloadFile(key: "test.txt")
         _ = try await manager.downloadFile(key: "1/test.txt", rootDir: "downloads")
         
-        // 7. 测试下载文件夹
-        WaynePrint.print("\n7. 测试下载文件夹", color: "cyan")
+        // 8. 测试下载文件夹
+        WaynePrint.print("\n8. 测试下载文件夹", color: "cyan")
         _ = try await manager.downloadDirectory(prefix: "test_dir/", localPath: "downloads")
         
-        // 8. 下载指定前缀的文件
-        WaynePrint.print("\n8. 测试下载指定前缀的文件", color: "cyan")
+        // 9. 下载指定前缀的文件
+        WaynePrint.print("\n9. 测试下载指定前缀的文件", color: "cyan")
         _ = try await manager.downloadFilesWithPrefix("2/", rootDir: "downloads")
         
-        // 9. 删除文件
-        WaynePrint.print("\n9. 测试删除文件", color: "cyan")
+        // 10. 删除文件
+        WaynePrint.print("\n10. 测试删除文件", color: "cyan")
         _ = try await manager.deleteFile(key: "test.txt")
         _ = try await manager.deleteFile(key: "hello.txt")
         
-        // 10. 删除指定前缀的文件
-        WaynePrint.print("\n10. 测试删除指定前缀的文件", color: "cyan")
+        // 11. 删除指定前缀的文件
+        WaynePrint.print("\n11. 测试删除指定前缀的文件", color: "cyan")
         _ = try await manager.deleteFilesWithPrefix("1/")
         _ = try await manager.deleteFilesWithPrefix("2/")
         _ = try await manager.deleteFilesWithPrefix("test_dir/")

@@ -396,4 +396,47 @@ public actor AliyunOSS {
         
         return success
     }
+    
+    public func listDirectoryContents(_ prefix: String, sort: Bool = true) async throws -> [(name: String, isDirectory: Bool)] {
+        var contents: [(name: String, isDirectory: Bool)] = []
+        let normalizedPrefix = prefix.hasSuffix("/") ? prefix : prefix + "/"
+        
+        // 获取所有以该前缀开头的文件
+        let allKeys = try await listKeysWithPrefix(normalizedPrefix)
+        
+        // 处理每个 key
+        for key in allKeys {
+            // 移除前缀，得到相对路径
+            let relativePath = String(key.dropFirst(normalizedPrefix.count))
+            let components = relativePath.components(separatedBy: "/")
+            
+            // 只处理第一级目录下的内容
+            if components.count > 0 && components[0].count > 0 {
+                if components.count == 1 {
+                    // 这是一个文件
+                    contents.append((name: components[0], isDirectory: false))
+                } else {
+                    // 这是一个目录
+                    let dirName = components[0]
+                    // 检查是否已经添加过这个目录
+                    if !contents.contains(where: { $0.name == dirName }) {
+                        contents.append((name: dirName, isDirectory: true))
+                    }
+                }
+            }
+        }
+        
+        if sort {
+            // 先按类型排序（目录在前），再按名称排序
+            contents.sort { (a, b) in
+                if a.isDirectory != b.isDirectory {
+                    return a.isDirectory
+                }
+                return a.name < b.name
+            }
+        }
+        
+        printInfo("成功获取目录 '\(normalizedPrefix)' 的内容，共 \(contents.count) 项")
+        return contents
+    }
 } 
