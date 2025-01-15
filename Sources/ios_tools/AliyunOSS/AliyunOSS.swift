@@ -439,4 +439,54 @@ public actor AliyunOSS {
         printInfo("成功获取目录 '\(normalizedPrefix)' 的内容，共 \(contents.count) 项")
         return contents
     }
+    
+    public func readFileContent(key: String) async throws -> String? {
+        // 检查是否为文件夹（通过检查是否以'/'结尾）
+        if key.hasSuffix("/") {
+            printWarning("指定的键值 '\(key)' 是一个文件夹")
+            return nil
+        }
+        
+        let date = getDate()
+        let authorization = getAuthorizationHeader(method: "GET", date: date, resource: key)
+        
+        var request = URLRequest(url: URL(string: "\(getBaseURL())/\(key)")!)
+        request.httpMethod = "GET"
+        request.setValue(date, forHTTPHeaderField: "Date")
+        request.setValue(authorization, forHTTPHeaderField: "Authorization")
+        
+        do {
+            // 检查是否为文件夹（通过检查是否有子文件）
+            let dirContents = try await listKeysWithPrefix(key + "/")
+            if !dirContents.isEmpty {
+                printWarning("指定的键值 '\(key)' 是一个文件夹")
+                return nil
+            }
+            
+            // 获取文件内容
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                if (200...299).contains(httpResponse.statusCode) {
+                    if let content = String(data: data, encoding: .utf8) {
+                        printInfo("成功读取文件内容：\(key)")
+                        return content
+                    } else {
+                        printWarning("文件内容解码失败")
+                        return nil
+                    }
+                } else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "未知错误"
+                    printWarning("读取文件失败：\(errorMessage)")
+                    return nil
+                }
+            } else {
+                printWarning("读取文件失败：服务器返回错误")
+                return nil
+            }
+        } catch {
+            printWarning("读取文件失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
 } 
