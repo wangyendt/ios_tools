@@ -239,87 +239,153 @@ public actor AliyunOSS {
     
     public func listAllKeys(sort: Bool = true) async throws -> [String] {
         var keys: [String] = []
-        let date = getDate()
-        let authorization = getAuthorizationHeader(method: "GET", date: date, resource: "")
+        var marker: String? = nil
         
-        var request = URLRequest(url: URL(string: "\(getBaseURL())/?max-keys=1000")!)
-        request.httpMethod = "GET"
-        request.setValue(date, forHTTPHeaderField: "Date")
-        request.setValue(authorization, forHTTPHeaderField: "Authorization")
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let httpResponse = response as? HTTPURLResponse {
-                if (200...299).contains(httpResponse.statusCode) {
-                    let xmlString = String(data: data, encoding: .utf8) ?? ""
-                    let keyPattern = "<Key>(.*?)</Key>"
-                    if let regex = try? NSRegularExpression(pattern: keyPattern) {
-                        let matches = regex.matches(in: xmlString, range: NSRange(xmlString.startIndex..., in: xmlString))
-                        keys = matches.compactMap { match in
-                            if let range = Range(match.range(at: 1), in: xmlString) {
-                                return String(xmlString[range])
+        repeat {
+            let date = getDate()
+            let authorization = getAuthorizationHeader(method: "GET", date: date, resource: "")
+            
+            var urlString = "\(getBaseURL())/?max-keys=1000"
+            if let marker = marker {
+                urlString += "&marker=\(marker)"
+            }
+            
+            var request = URLRequest(url: URL(string: urlString)!)
+            request.httpMethod = "GET"
+            request.setValue(date, forHTTPHeaderField: "Date")
+            request.setValue(authorization, forHTTPHeaderField: "Authorization")
+            
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse {
+                    if (200...299).contains(httpResponse.statusCode) {
+                        let xmlString = String(data: data, encoding: .utf8) ?? ""
+                        
+                        // 解析所有的 Key
+                        let keyPattern = "<Key>(.*?)</Key>"
+                        if let regex = try? NSRegularExpression(pattern: keyPattern) {
+                            let matches = regex.matches(in: xmlString, range: NSRange(xmlString.startIndex..., in: xmlString))
+                            let newKeys = matches.compactMap { match in
+                                if let range = Range(match.range(at: 1), in: xmlString) {
+                                    return String(xmlString[range])
+                                }
+                                return nil
                             }
-                            return nil
+                            keys.append(contentsOf: newKeys)
                         }
-                        if sort {
-                            keys.sort()
+                        
+                        // 检查是否有下一页
+                        let isTruncatedPattern = "<IsTruncated>(true|false)</IsTruncated>"
+                        let nextMarkerPattern = "<NextMarker>(.*?)</NextMarker>"
+                        
+                        if let regex = try? NSRegularExpression(pattern: isTruncatedPattern),
+                           let match = regex.firstMatch(in: xmlString, range: NSRange(xmlString.startIndex..., in: xmlString)),
+                           let range = Range(match.range(at: 1), in: xmlString),
+                           xmlString[range] == "true",
+                           let markerRegex = try? NSRegularExpression(pattern: nextMarkerPattern),
+                           let markerMatch = markerRegex.firstMatch(in: xmlString, range: NSRange(xmlString.startIndex..., in: xmlString)),
+                           let markerRange = Range(markerMatch.range(at: 1), in: xmlString) {
+                            marker = String(xmlString[markerRange])
+                        } else {
+                            marker = nil
                         }
-                        printInfo("成功获取所有 key，共 \(keys.count) 个")
+                        
+                    } else {
+                        let errorMessage = String(data: data, encoding: .utf8) ?? "未知错误"
+                        printWarning("获取文件列表失败：\(errorMessage)")
+                        break
                     }
                 } else {
-                    let errorMessage = String(data: data, encoding: .utf8) ?? "未知错误"
-                    printWarning("获取文件列表失败：\(errorMessage)")
+                    printWarning("获取文件列表失败：服务器返回错误")
+                    break
                 }
-            } else {
-                printWarning("获取文件列表失败：服务器返回错误")
+            } catch {
+                printWarning("获取文件列表失败：\(error.localizedDescription)")
+                break
             }
-        } catch {
-            printWarning("获取文件列表失败：\(error.localizedDescription)")
+        } while marker != nil
+        
+        if sort {
+            keys.sort()
         }
         
+        printInfo("成功获取所有 key，共 \(keys.count) 个")
         return keys
     }
     
     public func listKeysWithPrefix(_ prefix: String, sort: Bool = true) async throws -> [String] {
         var keys: [String] = []
-        let date = getDate()
-        let authorization = getAuthorizationHeader(method: "GET", date: date, resource: "")
+        var marker: String? = nil
         
-        var request = URLRequest(url: URL(string: "\(getBaseURL())/?prefix=\(prefix)&max-keys=1000")!)
-        request.httpMethod = "GET"
-        request.setValue(date, forHTTPHeaderField: "Date")
-        request.setValue(authorization, forHTTPHeaderField: "Authorization")
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let httpResponse = response as? HTTPURLResponse {
-                if (200...299).contains(httpResponse.statusCode) {
-                    let xmlString = String(data: data, encoding: .utf8) ?? ""
-                    let keyPattern = "<Key>(.*?)</Key>"
-                    if let regex = try? NSRegularExpression(pattern: keyPattern) {
-                        let matches = regex.matches(in: xmlString, range: NSRange(xmlString.startIndex..., in: xmlString))
-                        keys = matches.compactMap { match in
-                            if let range = Range(match.range(at: 1), in: xmlString) {
-                                return String(xmlString[range])
+        repeat {
+            let date = getDate()
+            let authorization = getAuthorizationHeader(method: "GET", date: date, resource: "")
+            
+            var urlString = "\(getBaseURL())/?prefix=\(prefix)&max-keys=1000"
+            if let marker = marker {
+                urlString += "&marker=\(marker)"
+            }
+            
+            var request = URLRequest(url: URL(string: urlString)!)
+            request.httpMethod = "GET"
+            request.setValue(date, forHTTPHeaderField: "Date")
+            request.setValue(authorization, forHTTPHeaderField: "Authorization")
+            
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                if let httpResponse = response as? HTTPURLResponse {
+                    if (200...299).contains(httpResponse.statusCode) {
+                        let xmlString = String(data: data, encoding: .utf8) ?? ""
+                        
+                        // 解析所有的 Key
+                        let keyPattern = "<Key>(.*?)</Key>"
+                        if let regex = try? NSRegularExpression(pattern: keyPattern) {
+                            let matches = regex.matches(in: xmlString, range: NSRange(xmlString.startIndex..., in: xmlString))
+                            let newKeys = matches.compactMap { match in
+                                if let range = Range(match.range(at: 1), in: xmlString) {
+                                    return String(xmlString[range])
+                                }
+                                return nil
                             }
-                            return nil
+                            keys.append(contentsOf: newKeys)
                         }
-                        if sort {
-                            keys.sort()
+                        
+                        // 检查是否有下一页
+                        let isTruncatedPattern = "<IsTruncated>(true|false)</IsTruncated>"
+                        let nextMarkerPattern = "<NextMarker>(.*?)</NextMarker>"
+                        
+                        if let regex = try? NSRegularExpression(pattern: isTruncatedPattern),
+                           let match = regex.firstMatch(in: xmlString, range: NSRange(xmlString.startIndex..., in: xmlString)),
+                           let range = Range(match.range(at: 1), in: xmlString),
+                           xmlString[range] == "true",
+                           let markerRegex = try? NSRegularExpression(pattern: nextMarkerPattern),
+                           let markerMatch = markerRegex.firstMatch(in: xmlString, range: NSRange(xmlString.startIndex..., in: xmlString)),
+                           let markerRange = Range(markerMatch.range(at: 1), in: xmlString) {
+                            marker = String(xmlString[markerRange])
+                        } else {
+                            marker = nil
                         }
-                        printInfo("成功获取前缀为 \(prefix) 的 key，共 \(keys.count) 个")
+                        
+                    } else {
+                        let errorMessage = String(data: data, encoding: .utf8) ?? "未知错误"
+                        printWarning("获取文件列表失败：\(errorMessage)")
+                        break
                     }
                 } else {
-                    let errorMessage = String(data: data, encoding: .utf8) ?? "未知错误"
-                    printWarning("获取文件列表失败：\(errorMessage)")
+                    printWarning("获取文件列表失败：服务器返回错误")
+                    break
                 }
-            } else {
-                printWarning("获取文件列表失败：服务器返回错误")
+            } catch {
+                printWarning("获取文件列表失败：\(error.localizedDescription)")
+                break
             }
-        } catch {
-            printWarning("获取文件列表失败：\(error.localizedDescription)")
+        } while marker != nil
+        
+        if sort {
+            keys.sort()
         }
         
+        printInfo("成功获取前缀为 \(prefix) 的 key，共 \(keys.count) 个")
         return keys
     }
     
