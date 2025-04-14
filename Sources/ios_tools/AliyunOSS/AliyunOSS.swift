@@ -81,12 +81,21 @@ public actor AliyunOSS {
         return "https://\(bucketName).\(endpoint)"
     }
     
-    public func downloadFile(key: String, rootDir: String? = nil) async throws -> Bool {
+    public func downloadFile(key: String, rootDir: String? = nil, useBasename: Bool = false) async throws -> Bool {
         let savePath: String
         if let rootDir = rootDir {
-            savePath = (rootDir as NSString).appendingPathComponent(key)
+            if useBasename {
+                let filename = (key as NSString).lastPathComponent
+                savePath = (rootDir as NSString).appendingPathComponent(filename)
+            } else {
+                savePath = (rootDir as NSString).appendingPathComponent(key)
+            }
         } else {
-            savePath = key
+            if useBasename {
+                savePath = (key as NSString).lastPathComponent
+            } else {
+                savePath = key
+            }
         }
         
         // 创建必要的目录
@@ -402,12 +411,12 @@ public actor AliyunOSS {
         return success
     }
     
-    public func downloadFilesWithPrefix(_ prefix: String, rootDir: String? = nil) async throws -> Bool {
+    public func downloadFilesWithPrefix(_ prefix: String, rootDir: String? = nil, useBasename: Bool = false) async throws -> Bool {
         let keys = try await listKeysWithPrefix(prefix)
         var success = true
         
         for key in keys {
-            if !(try await downloadFile(key: key, rootDir: rootDir)) {
+            if !(try await downloadFile(key: key, rootDir: rootDir, useBasename: useBasename)) {
                 success = false
             }
         }
@@ -446,7 +455,7 @@ public actor AliyunOSS {
         return success
     }
     
-    public func downloadDirectory(prefix: String, localPath: String) async throws -> Bool {
+    public func downloadDirectory(prefix: String, localPath: String, useBasename: Bool = false) async throws -> Bool {
         let keys = try await listKeysWithPrefix(prefix)
         guard !keys.isEmpty else {
             printWarning("未找到前缀为 \(prefix) 的文件")
@@ -455,7 +464,7 @@ public actor AliyunOSS {
         
         var success = true
         for key in keys {
-            if try await downloadFile(key: key, rootDir: localPath) == false {
+            if try await downloadFile(key: key, rootDir: localPath, useBasename: useBasename) == false {
                 success = false
             }
         }
@@ -553,6 +562,160 @@ public actor AliyunOSS {
         } catch {
             printWarning("读取文件失败：\(error.localizedDescription)")
             return nil
+        }
+    }
+    
+    public func keyExists(key: String) async throws -> Bool {
+        let date = getDate()
+        let authorization = getAuthorizationHeader(method: "HEAD", date: date, resource: key)
+        
+        var request = URLRequest(url: URL(string: "\(getBaseURL())/\(key)")!)
+        request.httpMethod = "HEAD"
+        request.setValue(date, forHTTPHeaderField: "Date")
+        request.setValue(authorization, forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                if (200...299).contains(httpResponse.statusCode) {
+                    printInfo("文件存在：\(key)")
+                    return true
+                } else {
+                    printInfo("文件不存在：\(key)")
+                    return false
+                }
+            } else {
+                printWarning("检查文件失败：服务器返回错误")
+                return false
+            }
+        } catch {
+            printWarning("检查文件失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+    
+    public func getFileMetadata(key: String) async throws -> [String: Any]? {
+        let date = getDate()
+        let authorization = getAuthorizationHeader(method: "HEAD", date: date, resource: key)
+        
+        var request = URLRequest(url: URL(string: "\(getBaseURL())/\(key)")!)
+        request.httpMethod = "HEAD"
+        request.setValue(date, forHTTPHeaderField: "Date")
+        request.setValue(authorization, forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                if (200...299).contains(httpResponse.statusCode) {
+                    var metadata: [String: Any] = [:]
+                    
+                    // 处理响应头
+                    for (headerKey, headerValue) in httpResponse.allHeaderFields {
+                        if let key = headerKey as? String, let value = headerValue as? String {
+                            metadata[key] = value
+                        }
+                    }
+                    
+                    // 添加文件大小
+                    metadata["content_length"] = httpResponse.expectedContentLength
+                    
+                    printInfo("成功获取文件元数据：\(key)")
+                    return metadata
+                } else {
+                    printWarning("获取文件元数据失败：文件不存在或权限不足")
+                    return nil
+                }
+            } else {
+                printWarning("获取文件元数据失败：服务器返回错误")
+                return nil
+            }
+        } catch {
+            printWarning("获取文件元数据失败：\(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    public func copyObject(sourceKey: String, targetKey: String) async throws -> Bool {
+        guard checkWritePermission() else { return false }
+        
+        // 首先检查源文件是否存在
+        if !(try await keyExists(key: sourceKey)) {
+            printWarning("复制失败：源文件不存在 \(sourceKey)")
+            return false
+        }
+        
+        // 获取源文件内容
+        let date = getDate()
+        let authorization = getAuthorizationHeader(method: "GET", date: date, resource: sourceKey)
+        
+        var request = URLRequest(url: URL(string: "\(getBaseURL())/\(sourceKey)")!)
+        request.httpMethod = "GET"
+        request.setValue(date, forHTTPHeaderField: "Date")
+        request.setValue(authorization, forHTTPHeaderField: "Authorization")
+        
+        do {
+            // 下载源文件
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+                printWarning("复制失败：无法读取源文件内容")
+                return false
+            }
+            
+            // 上传到新位置
+            let contentMD5 = calculateMD5(data: data)
+            let uploadDate = getDate()
+            let uploadAuthorization = getAuthorizationHeader(
+                method: "PUT",
+                contentType: "application/octet-stream",
+                contentMD5: contentMD5,
+                date: uploadDate,
+                resource: targetKey
+            )
+            
+            var uploadRequest = URLRequest(url: URL(string: "\(getBaseURL())/\(targetKey)")!)
+            uploadRequest.httpMethod = "PUT"
+            uploadRequest.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+            uploadRequest.setValue(contentMD5, forHTTPHeaderField: "Content-MD5")
+            uploadRequest.setValue(uploadDate, forHTTPHeaderField: "Date")
+            uploadRequest.setValue(uploadAuthorization, forHTTPHeaderField: "Authorization")
+            uploadRequest.httpBody = data
+            
+            let (uploadData, uploadResponse) = try await URLSession.shared.data(for: uploadRequest)
+            if let uploadHttpResponse = uploadResponse as? HTTPURLResponse {
+                if (200...299).contains(uploadHttpResponse.statusCode) {
+                    printInfo("成功复制文件：\(sourceKey) -> \(targetKey)")
+                    return true
+                } else {
+                    let errorMessage = String(data: uploadData, encoding: .utf8) ?? "未知错误"
+                    printWarning("复制文件失败：\(errorMessage)")
+                    return false
+                }
+            } else {
+                printWarning("复制文件失败：服务器返回错误")
+                return false
+            }
+        } catch {
+            printWarning("复制文件失败：\(error.localizedDescription)")
+            return false
+        }
+    }
+    
+    public func moveObject(sourceKey: String, targetKey: String) async throws -> Bool {
+        guard checkWritePermission() else { return false }
+        
+        // 先复制文件
+        if try await copyObject(sourceKey: sourceKey, targetKey: targetKey) {
+            // 复制成功后删除源文件
+            if try await deleteFile(key: sourceKey) {
+                printInfo("成功移动文件：\(sourceKey) -> \(targetKey)")
+                return true
+            } else {
+                printWarning("移动文件部分失败：文件已复制到 \(targetKey)，但删除源文件 \(sourceKey) 失败")
+                return false
+            }
+        } else {
+            printWarning("移动文件失败：无法复制 \(sourceKey) 到 \(targetKey)")
+            return false
         }
     }
 } 

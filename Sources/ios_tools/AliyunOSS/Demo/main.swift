@@ -118,18 +118,61 @@ struct Main {
         _ = try await manager.downloadFile(key: "test.txt")
         _ = try await manager.downloadFile(key: "1/test.txt", rootDir: "downloads")
         
+        // 测试使用useBasename参数下载文件
+        WaynePrint.print("\n测试使用useBasename参数下载文件", color: "cyan")
+        _ = try await manager.downloadFile(key: "1/test2.txt", rootDir: "downloads_basename", useBasename: true)
+        
         // 9. 测试下载文件夹
         WaynePrint.print("\n9. 测试下载文件夹", color: "cyan")
         _ = try await manager.downloadDirectory(prefix: "test_dir/", localPath: "downloads")
+        
+        // 测试使用useBasename参数下载文件夹
+        WaynePrint.print("\n测试使用useBasename参数下载文件夹", color: "cyan")
+        _ = try await manager.downloadDirectory(prefix: "test_dir/", localPath: "downloads_flat", useBasename: true)
         
         // 10. 测试下载指定前缀的文件
         WaynePrint.print("\n10. 测试下载指定前缀的文件", color: "cyan")
         _ = try await manager.downloadFilesWithPrefix("2/", rootDir: "downloads")
         
+        // 测试使用useBasename参数下载指定前缀的文件
+        WaynePrint.print("\n测试使用useBasename参数下载指定前缀的文件", color: "cyan")
+        _ = try await manager.downloadFilesWithPrefix("2/", rootDir: "downloads_prefix_basename", useBasename: true)
+        
+        // 测试keyExists功能
+        WaynePrint.print("\n测试keyExists功能", color: "cyan")
+        let fileExists = try await manager.keyExists(key: "test.txt")
+        WaynePrint.print("test.txt 是否存在: \(fileExists)", color: "magenta")
+        let nonexistentFileExists = try await manager.keyExists(key: "nonexistent.txt")
+        WaynePrint.print("nonexistent.txt 是否存在: \(nonexistentFileExists)", color: "magenta")
+        
+        // 测试getFileMetadata功能
+        WaynePrint.print("\n测试getFileMetadata功能", color: "cyan")
+        if let metadata = try await manager.getFileMetadata(key: "test.txt") {
+            WaynePrint.print("test.txt 元数据:", color: "magenta")
+            for (key, value) in metadata {
+                WaynePrint.print("  \(key): \(value)", color: "magenta")
+            }
+        }
+        
+        // 测试copyObject功能
+        WaynePrint.print("\n测试copyObject功能", color: "cyan")
+        _ = try await manager.copyObject(sourceKey: "test.txt", targetKey: "test_copy.txt")
+        let copyExists = try await manager.keyExists(key: "test_copy.txt")
+        WaynePrint.print("复制后的文件是否存在: \(copyExists)", color: "magenta")
+        
+        // 测试moveObject功能
+        WaynePrint.print("\n测试moveObject功能", color: "cyan")
+        _ = try await manager.moveObject(sourceKey: "test_copy.txt", targetKey: "test_moved.txt")
+        let sourceExists = try await manager.keyExists(key: "test_copy.txt")
+        let targetExists = try await manager.keyExists(key: "test_moved.txt")
+        WaynePrint.print("移动后，源文件是否存在: \(sourceExists)", color: "magenta")
+        WaynePrint.print("移动后，目标文件是否存在: \(targetExists)", color: "magenta")
+        
         // 11. 删除文件
         WaynePrint.print("\n11. 测试删除文件", color: "cyan")
         _ = try await manager.deleteFile(key: "test.txt")
         _ = try await manager.deleteFile(key: "hello.txt")
+        _ = try await manager.deleteFile(key: "test_moved.txt")
         
         // 12. 删除指定前缀的文件
         WaynePrint.print("\n12. 测试删除指定前缀的文件", color: "cyan")
