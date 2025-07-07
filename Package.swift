@@ -6,9 +6,9 @@ import PackageDescription
 let package = Package(
     name: "ios_tools",
     platforms: [
-        .macOS(.v13),
-        .iOS(.v16),
-        .watchOS(.v8)
+        .macOS(.v10_15),      // 支持 macOS 10.15+，与代码标注一致
+        .iOS(.v13),           // 支持 iOS 13+，与代码标注一致（iPadOS会自动跟随iOS支持）
+        .watchOS(.v6)         // 支持 watchOS 6.0+，与代码标注一致
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -29,7 +29,10 @@ let package = Package(
             targets: ["AliyunOSSDemo"]),
         .executable(
             name: "OpenAIDemo",
-            targets: ["OpenAIDemo"])
+            targets: ["OpenAIDemo"]),
+        .executable(
+            name: "CrossCommDemo",
+            targets: ["CrossCommDemo"])
     ],
     targets: [
         // 核心库目标，只包含实际的功能代码
@@ -43,12 +46,14 @@ let package = Package(
                 "LarkCustomBot/Demo",
                 "Tools/Demo",
                 "OpenAI/Demo",
+                "CrossComm/Demo",
                 // 排除所有可能包含 @main 的文件
                 "AliyunOSS/Demo/main.swift",
                 "LarkBot/Demo/main.swift",
                 "LarkCustomBot/Demo/main.swift",
                 "Tools/Demo/WaynePrint/main.swift",
-                "OpenAI/Demo/main.swift"
+                "OpenAI/Demo/main.swift",
+                "CrossComm/Demo/main.swift"
             ],
             sources: [
                 "AliyunOSS/AliyunOSS.swift",
@@ -56,6 +61,7 @@ let package = Package(
                 "LarkCustomBot/LarkCustomBot.swift",
                 "Tools/WaynePrint.swift",
                 "OpenAI/OpenAI.swift",
+                "CrossComm/CrossComm.swift",
                 "Common"
             ]),
         
@@ -84,6 +90,11 @@ let package = Package(
             name: "OpenAIDemo",
             dependencies: ["ios_tools_lib"],
             path: "Sources/ios_tools/OpenAI/Demo",
+            sources: ["main.swift"]),
+        .executableTarget(
+            name: "CrossCommDemo",
+            dependencies: ["ios_tools_lib"],
+            path: "Sources/ios_tools/CrossComm/Demo",
             sources: ["main.swift"])
     ]
 )

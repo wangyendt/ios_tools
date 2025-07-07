@@ -1,5 +1,6 @@
 import Foundation
 
+@available(iOS 15.0, macOS 12.0, watchOS 8.0, *)
 public class OpenAI {
     private let apiKey: String
     private let baseURL: String
@@ -129,7 +130,7 @@ public class OpenAI {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         
         var byteArray = [UInt8]()
-        var buffer = ""
+        // var buffer = ""  // Removed unused variable
         
         for try await byte in bytes {
             byteArray.append(byte)
