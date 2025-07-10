@@ -1,16 +1,26 @@
 # ios_tools
 
-iOS开发工具集合，包含以下模块：
-- OpenAI API 调用
-- 飞书机器人
-- 飞书自定义机器人
-- 阿里云OSS
-- 跨语言通信库 (CrossComm) - **完整支持文件传输功能** 🚀
-- 工具类
+![Platform](https://img.shields.io/badge/platform-iOS%2013%2B%20%7C%20macOS%2010.15%2B%20%7C%20watchOS%206.2%2B%20%7C%20tvOS%2013%2B-blue)
+![Swift](https://img.shields.io/badge/Swift-5.9%2B-orange)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+全平台苹果生态开发工具集合，包含以下模块：
+- 🤖 OpenAI API 调用
+- 🚀 飞书机器人 (官方 API)
+- 🔗 飞书自定义机器人 (Webhook)
+- ☁️ 阿里云OSS (对象存储)
+- 🌐 跨语言通信库 (CrossComm) - **完整支持文件传输功能** ⚡
+- 🛠️ 工具类集合
 
 ## 环境要求
-- iOS 13.0+ / macOS 10.15+ / watchOS 6.0+ （支持多平台）
+- iOS 13.0+ / macOS 10.15+ / watchOS 6.2+ （完整跨平台支持）
 - Swift 5.9+
+
+### 平台支持详情
+- 📱 **iPhone/iPad**: iOS 13.0+ (支持设备唯一标识符)
+- ⌚ **Apple Watch**: watchOS 6.2+ (需要6.2+以支持identifierForVendor)
+- 💻 **Mac**: macOS 10.15+ (使用随机UUID作为设备标识)
+- 📺 **Apple TV**: tvOS 13.0+ (支持设备唯一标识符)
 
 ## 安装方法
 
@@ -168,12 +178,18 @@ import ios_tools_lib
 let client = CrossCommClient(
     ip: "39.105.45.101",              // 服务器IP
     port: 9898,                       // 服务器端口
-    clientId: "my_ios_app",           // 可选：自定义客户端ID
+    clientId: "my_ios_app",           // 可选：自定义客户端ID（不设置会自动生成）
     ossEndpoint: "your-oss-endpoint", // OSS配置（文件传输必需）
     ossAccessKeyId: "your-key-id",
     ossAccessKeySecret: "your-secret",
     ossBucketName: "your-bucket"
 )
+
+// 自动设备标识符：
+// - iPhone/iPad: 使用 UIDevice.identifierForVendor
+// - Apple Watch: 使用 WKInterfaceDevice.identifierForVendor (需要 watchOS 6.2+)
+// - Mac: 使用随机 UUID（每次启动不同）
+// - Apple TV: 使用 UIDevice.identifierForVendor
 
 // 添加基础消息监听器
 await client.addMessageListener(msgType: .text) { message in
@@ -299,7 +315,16 @@ await client.addMessageListener(msgType: .file) { message in
 2. 在生产环境中使用时，建议使用环境变量或配置文件来管理密钥
 3. 每个模块的Demo文件夹中都有更详细的使用示例
 4. **CrossComm 文件传输功能需要配置阿里云OSS参数**
-5. 支持的平台：iOS 13.0+、macOS 10.15+、watchOS 6.0+
+5. **支持的平台**：
+   - 📱 iOS 13.0+ / iPadOS 13.0+
+   - 💻 macOS 10.15+
+   - ⌚ watchOS 6.2+（CrossComm需要6.2+支持设备标识符API）
+   - 📺 tvOS 13.0+
+
+### 平台特殊说明
+- **Apple Watch**: 需要 watchOS 6.2+ 才能使用 CrossComm 的设备标识符功能
+- **Mac**: CrossComm 在 Mac 上使用随机 UUID 作为设备标识，每次启动应用会生成新的标识
+- **所有平台**: 其他功能模块（OpenAI、LarkBot、阿里云OSS等）在所有支持平台上功能完全一致
 
 ## 许可证
 MIT-License
