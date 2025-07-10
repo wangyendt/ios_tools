@@ -3,6 +3,12 @@ import Network
 #if canImport(UIKit)
 import UIKit
 #endif
+#if canImport(WatchKit)
+import WatchKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
 
 // MARK: - 消息类型枚举
 public enum CommMsgType: String, CaseIterable, Codable {
@@ -108,12 +114,23 @@ public actor CrossCommClient {
         if let customId = clientId {
             self.clientId = customId
         } else {
-            // 使用设备信息生成唯一ID
-            #if canImport(UIKit)
-            let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+            // 使用设备信息生成唯一ID，针对不同平台使用相应的API
+            let deviceId: String
+            
+            #if os(iOS) || os(tvOS)
+            // iOS, iPadOS, tvOS 使用 UIDevice
+            deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+            #elseif os(watchOS)
+            // watchOS 使用 WKInterfaceDevice
+            deviceId = WKInterfaceDevice.current().identifierForVendor?.uuidString ?? UUID().uuidString
+            #elseif os(macOS)
+            // macOS 可以尝试使用系统信息或直接使用UUID
+            deviceId = UUID().uuidString
             #else
-            let deviceId = UUID().uuidString
+            // 其他平台直接使用UUID
+            deviceId = UUID().uuidString
             #endif
+            
             let randomId = String(UUID().uuidString.prefix(8))
             self.clientId = "\(deviceId)_\(randomId)"
         }
