@@ -79,7 +79,7 @@ public struct MessageListenerConfig {
 }
 
 // MARK: - CrossComm 客户端
-@available(iOS 13.0, macOS 10.15, watchOS 6.0, *)
+@available(iOS 13.0, macOS 10.15, watchOS 6.2, *)
 public actor CrossCommClient {
     private let ip: String
     private let port: Int
@@ -790,7 +790,7 @@ public actor CrossCommClient {
 }
 
 // MARK: - 便利扩展
-@available(iOS 13.0, macOS 10.15, watchOS 6.0, *)
+@available(iOS 13.0, macOS 10.15, watchOS 6.2, *)
 extension CrossCommClient {
     
     /// 发送文本消息

@@ -8,7 +8,7 @@ let package = Package(
     platforms: [
         .macOS(.v10_15),      // 支持 macOS 10.15+，与代码标注一致
         .iOS(.v13),           // 支持 iOS 13+，与代码标注一致（iPadOS会自动跟随iOS支持）
-        .watchOS(.v6)         // 支持 watchOS 6.0+，与代码标注一致
+        .watchOS("6.2")       // 支持 watchOS 6.2+，CrossComm需要identifierForVendor API
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
